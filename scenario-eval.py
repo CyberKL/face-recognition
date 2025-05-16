@@ -1,14 +1,25 @@
+# Standard library imports
+import os
+import time
+import pickle
+from datetime import datetime
+
+# Computer vision and numerical libraries
 import cv2
 import numpy as np
-import pickle
 import torch
-from facenet_pytorch import MTCNN, InceptionResnetV1
-from sklearn.metrics.pairwise import cosine_distances
 from PIL import Image
-import os
-from datetime import datetime
+
+# Face recognition models
+from facenet_pytorch import MTCNN, InceptionResnetV1
+
+# Machine learning utilities
+from sklearn.metrics.pairwise import cosine_distances
+
+# OS-specific utility for sound feedback (Windows only)
 import winsound
-import time
+
+# GUI libraries for user input dialogs
 import tkinter as tk
 from tkinter import simpledialog
 
