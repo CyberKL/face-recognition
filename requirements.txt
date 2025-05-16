@@ -1,0 +1,9 @@
+requests
+numpy
+matplotlib
+opencv-python
+pillow
+torchvision
+scikit-learn
+tqdm
+seaborn
