@@ -140,7 +140,7 @@ def main():
     registration_name = None
     registration_embs = []
     last_capture_time = 0
-    capture_interval = 1.5  # seconds
+    capture_interval = 1.5
     max_captures = 10
     instructions = [
         "Press 'a' to request access",
@@ -149,7 +149,7 @@ def main():
     ]
     status_message = ""
     status_message_time = 0
-    status_message_duration = 3  # seconds to show message
+    status_message_duration = 3
 
     while True:
         ret, frame = cap.read()
@@ -200,7 +200,7 @@ def main():
             emb = get_face_embedding(frame)
             name, dist = recognize_face(emb, user_db)
 
-            if name == "Unknown" or name == "No face detected":
+            if name == "Unknown" or name == "No face detected" or name == "No users registered":
                 color = (0, 0, 255)
                 access_status = "Access Denied"
                 play_access_denied()
@@ -208,7 +208,6 @@ def main():
                 color = (0, 255, 0)
                 access_status = "Access Granted"
                 play_access_granted()
-                # Optional: trigger door unlock here
 
             log_access(name, access_status, dist)
 
