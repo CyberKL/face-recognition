@@ -69,18 +69,17 @@ def register_user(name, embeddings, user_db, threshold=0.3):
         print("No valid face captured. Registration failed.")
         return False
 
-    mean_emb = np.mean(embeddings, axis=0)
-
-    # Check if user already registered
+    # Check if user already registered (compare all embeddings to all stored embeddings)
     if len(user_db) > 0:
-        db_embs = np.array(list(user_db.values()))
-        distances = cosine_distances([mean_emb], db_embs)[0]
-        min_dist = distances.min()
-        if min_dist < threshold:
-            print(f"Face too similar to existing user (distance {min_dist:.3f}). Registration aborted.")
-            return False
+        for stored_embs in user_db.values():
+            # stored_embs is a list of embeddings for a user
+            distances = cosine_distances(embeddings, stored_embs)
+            # distances shape: (num_new_embs, num_stored_embs)
+            if (distances < threshold).any():
+                print("Face too similar to existing user. Registration aborted.")
+                return False
 
-    user_db[name] = mean_emb
+    user_db[name] = embeddings
     save_user_db(user_db)
     print(f"Registered: {name}")
     return True
@@ -88,22 +87,21 @@ def register_user(name, embeddings, user_db, threshold=0.3):
 # =====================================
 # Helper: Recognize Face
 # =====================================
-def recognize_face(embedding, user_db, threshold=0.3):
+def recognize_face(embedding, name, user_db, threshold=0.3):
     if embedding is None:
         return "No face detected", None
 
     if len(user_db) == 0:
         return "No users registered", None
 
-    names = list(user_db.keys())
-    db_embs = np.array(list(user_db.values()))
+    # user_db[name] is a list of embeddings for that user
+    user_embs = np.array(user_db[name])  # shape (N, embedding_dim)
 
-    distances = cosine_distances([embedding], db_embs)[0]
+    distances = cosine_distances([embedding], user_embs)[0]  # distances to each stored embedding
     min_dist = distances.min()
-    min_idx = distances.argmin()
 
     if min_dist < threshold:
-        return names[min_idx], min_dist
+        return name, min_dist
     else:
         return "Unknown", min_dist
 
@@ -123,11 +121,19 @@ def log_access(name, status, dist):
         f.write(f"{now},{name},{status},{dist if dist is not None else 'N/A'}\n")
 
 # --- GUI functions ---
-def ask_username():
+def ask_username_register():
     root = tk.Tk()
     root.withdraw()  # Hide main window
     user_name = simpledialog.askstring(title="User Registration",
                                        prompt="Enter new user's name:")
+    root.destroy()
+    return user_name
+
+def ask_username():
+    root = tk.Tk()
+    root.withdraw()  # Hide main window
+    user_name = simpledialog.askstring(title="User Verification",
+                                       prompt="Enter username:")
     root.destroy()
     return user_name
 
@@ -199,7 +205,7 @@ def main():
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
 
             emb = get_face_embedding(frame)
-            name, dist = recognize_face(emb, user_db)
+            name, dist = recognize_face(emb, username, user_db)
 
             if name == "Unknown" or name == "No face detected" or name == "No users registered":
                 color = (0, 0, 255)
@@ -233,7 +239,7 @@ def main():
         if key == ord('q'):
             break
         elif key == ord('r') and mode == "idle":
-            registration_name = ask_username()
+            registration_name = ask_username_register()
             if not registration_name:
                 print("Registration cancelled.")
                 status_message = "Registration cancelled."
@@ -249,7 +255,14 @@ def main():
                 mode = "registration"
                 print(f"Starting registration for: {registration_name}")
         elif key == ord('a') and mode == "idle":
-            mode = "access_check"
+            username = ask_username()
+            if username not in user_db:
+                print("username not found")
+                status_message = f"User '{username}' not found"
+                status_message_time = time.time()
+                mode = "idle"
+            else:
+                mode = "access_check"
 
     cap.release()
     cv2.destroyAllWindows()
