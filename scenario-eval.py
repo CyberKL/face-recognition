@@ -71,6 +71,7 @@ def register_user(name, embeddings, user_db, threshold=0.3):
 
     mean_emb = np.mean(embeddings, axis=0)
 
+    # Check if user already registered
     if len(user_db) > 0:
         db_embs = np.array(list(user_db.values()))
         distances = cosine_distances([mean_emb], db_embs)[0]
